@@ -1,8 +1,7 @@
 #!/bin/bash
-H2="Authorization: token $(cat public_repo_token)"
 
-curl -H "$H2" 'https://api.github.com/repos/datamove/linux-git2/pulls?state=all&page=1&per_page=100' -o "pulls1.json"
-curl -H "$H2" 'https://api.github.com/repos/datamove/linux-git2/pulls?state=all&page=2&per_page=100' -o "pulls2.json"
+curl 'https://api.github.com/repos/datamove/linux-git2/pulls?state=all&page=1&per_page=100' -o "pulls1.json"
+curl 'https://api.github.com/repos/datamove/linux-git2/pulls?state=all&page=2&per_page=100' -o "pulls2.json"
 jq -s '.[0] + .[1]' pulls1.json pulls2.json > pulls.json
 
 
