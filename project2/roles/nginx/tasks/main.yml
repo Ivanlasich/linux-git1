@@ -1,0 +1,98 @@
+---
+# tasks file for nginx
+  - name: ensure nginx is at the latest version
+    apt: name=nginx state=latest
+    register: nginx_installed
+    become: yes
+    notify:
+      - Nginx restart
+
+  - name: copy the nginx config file and restart nginx
+    when: nginx_installed is succeeded
+    template: src=static_site.j2 dest=/etc/nginx/sites-available/static_site.conf
+    become: yes
+    register: nginx_conf_copy
+
+  - name: create symlink
+    when: nginx_conf_copy is succeeded
+    file:
+      src: /etc/nginx/sites-available/static_site.conf
+      dest: /etc/nginx/sites-enabled/default
+      state: link
+    become: yes
+
+  - name: Check that the service_state exists
+    stat:
+      path: /opt/service_state
+    register: stat_result
+
+  - name: get first string
+    shell:
+      cmd: 'head -n 1 /opt/service_state'
+    register: string1
+    become: yes
+    when: stat_result.stat.exists
+
+  - name: restart nginx
+    become: yes
+    when: (stat_result.stat.exists) and (string1.stdout!="Seems work")
+    shell: /usr/sbin/nginx -t
+    notify:
+      - Nginx reload
+
+  - name: copy the service_state
+    when: not stat_result.stat.exists
+    template: src=service_state dest=/opt/
+    become: yes
+    register: nginx_service_state_copy
+
+  - name: save state before test
+    shell:
+      cmd: 'sudo cp /opt/service_state /opt/ex'
+
+  - name: give ex rights to store
+    shell:
+      cmd: 'sudo chmod 777 ex'
+    when: not stat_result.stat.exists
+
+  - name: checking cron first
+    shell:
+      cmd: 'head -n 2 /opt/service_state | tail -n 1 | grep -o "[0-9]*"'
+    register: check_first
+    become: yes
+
+  - name: timeout
+    pause:
+      minutes: 1
+
+  - name: checking cron second
+    shell:
+      cmd: 'head -n 2 /opt/service_state | tail -n 1 | grep -o "[0-9]*"'
+    register: check_second
+    become: yes
+
+  - name: all is ok
+    debug:
+      msg: everything is ok, the file has changed
+    when: check_first.stdout != check_second.stdout
+
+  - name: some errors
+    fail:
+      msg: error, the file has changed
+    when: check_first.stdout == check_second.stdout
+
+  - name: update right config
+    shell:
+      cmd: "awk '/^Service/{$0=\"Service uptime is 0 minutes\"}1' /opt/service_state > /opt/ex"
+    become: yes
+    when: (stat_result.stat.exists) and (string1.stdout!="Seems work")
+
+  - name: get answer
+    shell:
+      cmd: 'sudo cp /opt/ex /opt/service_state'
+    become: yes
+
+
+
+
+
