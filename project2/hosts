@@ -1,2 +1,0 @@
-[test]
-10.211.54.203 ansible_user=vagrant ansible_ssh_private_key_file=~/tpos20-vagrant/vagrant_rsa
