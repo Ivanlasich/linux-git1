@@ -1,4 +1,0 @@
-- name: Nginx
-  hosts: front
-  roles:
-    - nginx
